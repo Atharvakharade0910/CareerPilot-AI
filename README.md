@@ -79,6 +79,10 @@ npm run build
 npx playwright test
 ```
 
+## Daily maintenance checklist
+
+Before opening a pull request or deploying a new build, verify the working tree is clean, run the backend and frontend checks above, and confirm that `backend/.env` is present only on the local machine. Use `Start-Local.ps1` for a local smoke test and `Stop-Local.ps1` when finished. Never paste API keys, database passwords, private resumes, or generated `private/` storage into an issue, commit, or support message.
+
 Backend tests use the configured PostgreSQL database and remove only their own test users and files. Browser tests require the services running; they create a `browser-*` account and are intended for a development/test database. The browser configuration uses installed Edge on Windows, otherwise Playwright Chromium (`npx playwright install chromium`).
 
 See [architecture](docs/ARCHITECTURE.md), [phase roadmap](docs/ROADMAP.md), and [verification](docs/VERIFICATION.md).
