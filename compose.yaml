@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:18
+    restart: unless-stopped
     environment:
       POSTGRES_DB: careerpilot
       POSTGRES_USER: careerpilot
@@ -14,5 +15,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 10s
 volumes:
   careerpilot_data:
