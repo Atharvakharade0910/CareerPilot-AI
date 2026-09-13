@@ -38,6 +38,8 @@ Requires Node.js 20.9+, Python 3.12+, and PostgreSQL. Install dependencies:
 cd backend
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
+# Install the Gemini, OCR, and monitoring dependencies declared by the application.
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
 # Edit DATABASE_URL with your private database credentials.
 .\.venv\Scripts\python.exe -m alembic upgrade head
