@@ -8,6 +8,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-shutdown:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify local shutdown preserves unrelated processes
+        shell: powershell
+        run: ./tests/test_stop_local.ps1
+
   verify:
     runs-on: ubuntu-latest
     steps:
