@@ -69,14 +69,14 @@ def document_text(data: bytes, filename: str) -> str:
                 from PIL import Image, ImageFilter, ImageOps
                 if os.environ.get("TESSERACT_CMD"):
                     pytesseract.pytesseract.tesseract_cmd = os.environ["TESSERACT_CMD"]
-                doc = fitz.open(stream=data, filetype="pdf")
                 pages = []
-                for page in doc:
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
-                    image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                    image = ImageOps.grayscale(image)
-                    image = ImageOps.autocontrast(image).filter(ImageFilter.SHARPEN)
-                    pages.append(pytesseract.image_to_string(image, config="--psm 3"))
+                with fitz.open(stream=data, filetype="pdf") as doc:
+                    for page in doc:
+                        pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
+                        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                        image = ImageOps.grayscale(image)
+                        image = ImageOps.autocontrast(image).filter(ImageFilter.SHARPEN)
+                        pages.append(pytesseract.image_to_string(image, config="--psm 3"))
                 text = "\n".join(pages)
             except Exception as exc:
                 raise ValueError("This scanned PDF needs local OCR. Install Tesseract OCR and the backend OCR dependencies, then retry.") from exc
