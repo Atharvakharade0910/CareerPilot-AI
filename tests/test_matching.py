@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.matching import score_job
+from app.services.matching import aggregate_gaps, score_job
 
 
 JOB = {
@@ -37,3 +37,33 @@ def test_rejected_evidence_does_not_change_accepted_evidence_score():
 def test_unspecified_acceptance_keeps_existing_default():
     fact = {"value": "Python", "category": "projects"}
     assert score_job({}, [fact], JOB) == score_job({}, [{**fact, "accepted": True}], JOB)
+
+
+def test_gap_frequency_counts_jobs_not_repeated_requirements():
+    rows = [{"missing": ["Python", "python", " Python "]}] * 5
+    assert aggregate_gaps(rows) == [{
+        "skill": "python", "occurrences": 5, "jobs_analyzed": 5,
+        "frequency": 100, "priority": "critical",
+    }]
+
+
+def test_gap_aliases_count_once_per_job_and_keep_correct_priority():
+    rows = [
+        {"missing": ["Postgres", "PostgreSQL"]},
+        {"missing": ["postgresql"]},
+        {"missing": ["postgres"]},
+        {"missing": []},
+        {},
+    ]
+    assert aggregate_gaps(rows) == [{
+        "skill": "postgresql", "occurrences": 3, "jobs_analyzed": 5,
+        "frequency": 60, "priority": "high",
+    }]
+
+
+def test_gap_report_ignores_blank_skills():
+    assert aggregate_gaps([{"missing": ["", "  "]}] * 5) == []
+
+
+def test_gap_report_still_requires_minimum_job_sample():
+    assert aggregate_gaps([{"missing": ["Python"]}] * 4) == []

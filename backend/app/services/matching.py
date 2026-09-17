@@ -34,5 +34,10 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
 
 def aggregate_gaps(rows: list[dict], minimum_jobs: int = 5) -> list[dict]:
     if len(rows) < minimum_jobs: return []
-    counts = Counter(skill for row in rows for skill in row.get("missing", []))
+    counts = Counter(
+        skill
+        for row in rows
+        for skill in dict.fromkeys(normalize(s) for s in row.get("missing", []))
+        if skill
+    )
     return [{"skill": skill, "occurrences": count, "jobs_analyzed": len(rows), "frequency": round(count / len(rows) * 100), "priority": "critical" if count / len(rows) >= .7 else "high" if count / len(rows) >= .5 else "watch"} for skill, count in counts.most_common()]
