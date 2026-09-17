@@ -10,7 +10,8 @@ def normalize(value: str) -> str:
     return ALIASES.get(value, value)
 
 def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
-    accepted = [normalize(f["value"]) for f in facts if f.get("accepted", True)]
+    facts = [f for f in facts if f.get("accepted", True)]
+    accepted = [normalize(f["value"]) for f in facts]
     accepted_set = set(accepted)
     req = [normalize(s) for s in job.get("requirements", {}).get("required", [])]
     pref = [normalize(s) for s in job.get("requirements", {}).get("preferred", [])]
