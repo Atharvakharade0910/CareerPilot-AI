@@ -13,8 +13,8 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     facts = [f for f in facts if f.get("accepted", True)]
     accepted = [normalize(f["value"]) for f in facts]
     accepted_set = set(accepted)
-    req = [normalize(s) for s in job.get("requirements", {}).get("required", [])]
-    pref = [normalize(s) for s in job.get("requirements", {}).get("preferred", [])]
+    req = list(dict.fromkeys(filter(None, (normalize(s) for s in job.get("requirements", {}).get("required", [])))))
+    pref = list(dict.fromkeys(filter(None, (normalize(s) for s in job.get("requirements", {}).get("preferred", [])))))
     matched = [s for s in req if s in accepted_set]
     partial = [s for s in req if s not in matched and any(s in a or a in s for a in accepted)]
     missing = [s for s in req if s not in matched and s not in partial]

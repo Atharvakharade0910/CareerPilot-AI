@@ -67,3 +67,28 @@ def test_gap_report_ignores_blank_skills():
 
 def test_gap_report_still_requires_minimum_job_sample():
     assert aggregate_gaps([{"missing": ["Python"]}] * 4) == []
+
+
+@pytest.mark.parametrize("bucket", ["required", "preferred"])
+def test_duplicate_requirements_do_not_change_match_score(bucket):
+    facts = [{"value": "PostgreSQL", "category": "skills", "accepted": True}]
+    clean_job = {**JOB, "requirements": {bucket: ["PostgreSQL", "Python"]}}
+    duplicate_job = {**JOB, "requirements": {
+        bucket: ["PostgreSQL", "Postgres", " POSTGRESQL ", "Python", "", "  "]
+    }}
+    assert score_job({}, facts, duplicate_job) == score_job({}, facts, clean_job)
+
+
+def test_missing_requirements_are_unique_and_keep_original_order():
+    job = {**JOB, "requirements": {
+        "required": ["Python", "Postgres", "python", "PostgreSQL", "Docker"]
+    }}
+    result = score_job({}, [], job)
+    assert result["missing"] == ["python", "postgresql", "docker"]
+    assert result["explanation"] == "Matched 0 of 3 required skills. 3 requirements need stronger evidence."
+
+
+def test_blank_requirements_behave_like_no_requirements():
+    empty = {**JOB, "requirements": {"required": [], "preferred": []}}
+    blank = {**JOB, "requirements": {"required": ["", " "], "preferred": ["\t"]}}
+    assert score_job({}, [], blank) == score_job({}, [], empty)
