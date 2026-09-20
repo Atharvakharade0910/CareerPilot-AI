@@ -92,3 +92,21 @@ def test_blank_requirements_behave_like_no_requirements():
     empty = {**JOB, "requirements": {"required": [], "preferred": []}}
     blank = {**JOB, "requirements": {"required": ["", " "], "preferred": ["\t"]}}
     assert score_job({}, [], blank) == score_job({}, [], empty)
+
+
+@pytest.mark.parametrize("value", ["", "   ", "\t\n"])
+@pytest.mark.parametrize("category", ["skills", "projects", "education", "experience"])
+def test_blank_facts_do_not_change_match(value, category):
+    blank = {"value": value, "category": category, "accepted": True}
+    assert score_job({}, [blank], JOB) == score_job({}, [], JOB)
+
+
+def test_blank_fact_does_not_hide_missing_skills_alongside_real_evidence():
+    job = {**JOB, "requirements": {"required": ["Python", "Docker"]}}
+    accepted = {"value": "Python", "category": "skills", "accepted": True}
+    blank = {"value": "", "category": "experience", "accepted": True}
+    result = score_job({}, [accepted, blank], job)
+    assert result == score_job({}, [accepted], job)
+    assert result["matched"] == ["python"]
+    assert result["partial"] == []
+    assert result["missing"] == ["docker"]
