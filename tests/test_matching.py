@@ -110,3 +110,30 @@ def test_blank_fact_does_not_hide_missing_skills_alongside_real_evidence():
     assert result["matched"] == ["python"]
     assert result["partial"] == []
     assert result["missing"] == ["docker"]
+
+
+@pytest.mark.parametrize("required,evidence", [
+    ("Java", "Built JavaScript applications"),
+    ("R", "Built React applications"),
+    ("SQL", "Built NoSQL applications"),
+    ("JavaScript", "Java"),
+])
+def test_substrings_are_not_skill_evidence(required, evidence):
+    job = {**JOB, "requirements": {"required": [required]}}
+    result = score_job({}, [{"value": evidence, "category": "projects"}], job)
+    assert result["partial"] == []
+    assert result["missing"] == [required.lower()]
+    assert result["breakdown"]["projects"] == 45
+
+
+@pytest.mark.parametrize("required,evidence", [
+    ("Python", "Built Python APIs"),
+    ("C++", "Built C++ applications"),
+    ("SQL", "Built SQL-based reports"),
+])
+def test_complete_skill_terms_in_project_phrases_still_match(required, evidence):
+    job = {**JOB, "requirements": {"required": [required]}}
+    result = score_job({}, [{"value": evidence, "category": "projects"}], job)
+    assert result["partial"] == [required.lower()]
+    assert result["missing"] == []
+    assert result["breakdown"]["projects"] == 100

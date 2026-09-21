@@ -9,6 +9,10 @@ def normalize(value: str) -> str:
     value = re.sub(r"\s+", " ", value.lower().strip())
     return ALIASES.get(value, value)
 
+
+def contains_term(text: str, term: str) -> bool:
+    return bool(term and re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text))
+
 def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     facts = [f for f in facts if f.get("accepted", True) and normalize(f["value"])]
     accepted = [normalize(f["value"]) for f in facts]
@@ -16,13 +20,13 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     req = list(dict.fromkeys(filter(None, (normalize(s) for s in job.get("requirements", {}).get("required", [])))))
     pref = list(dict.fromkeys(filter(None, (normalize(s) for s in job.get("requirements", {}).get("preferred", [])))))
     matched = [s for s in req if s in accepted_set]
-    partial = [s for s in req if s not in matched and any(s in a or a in s for a in accepted)]
+    partial = [s for s in req if s not in matched and any(contains_term(a, s) or contains_term(s, a) for a in accepted)]
     missing = [s for s in req if s not in matched and s not in partial]
     def ratio(items, hits): return (len(hits) / len(items) * 100) if items else 100
     skill = ratio(req, matched)
     pref_score = ratio(pref, [s for s in pref if s in accepted_set])
     text = " ".join(normalize(f["value"]) for f in facts if f.get("category") in {"projects", "experience"})
-    project_score = 100 if any(normalize(s) in text for s in req) else 45
+    project_score = 100 if any(contains_term(text, s) for s in req) else 45
     role_terms = set(normalize(job["title"]).split())
     roles = [set(normalize(r).split()) for r in profile.get("target_roles", [])]
     role_score = 100 if any(role_terms & r for r in roles) else 55
