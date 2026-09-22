@@ -160,3 +160,30 @@ def test_project_score_recognizes_complete_phrase_within_one_fact(category):
         {"value": "Documented the result", "category": category},
     ]
     assert score_job({}, facts, job)["breakdown"]["projects"] == 100
+
+
+def test_partial_match_explanation_requires_stronger_evidence():
+    fact = {"value": "Built Python APIs", "category": "projects"}
+    result = score_job({}, [fact], JOB)
+    assert result["matched"] == []
+    assert result["partial"] == ["python"]
+    assert result["explanation"] == (
+        "Matched 0 of 1 required skills. 1 requirement needs stronger evidence. "
+        "Partial evidence: 1."
+    )
+
+
+def test_explanation_counts_missing_and_partial_requirements():
+    job = {**JOB, "requirements": {"required": ["Python", "Docker", "SQL"]}}
+    facts = [
+        {"value": "Python", "category": "skills"},
+        {"value": "Built Docker services", "category": "projects"},
+    ]
+    result = score_job({}, facts, job)
+    assert result["matched"] == ["python"]
+    assert result["partial"] == ["docker"]
+    assert result["missing"] == ["sql"]
+    assert result["explanation"] == (
+        "Matched 1 of 3 required skills. 2 requirements need stronger evidence. "
+        "Partial evidence: 1."
+    )

@@ -34,7 +34,9 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     location_score = 100 if not location or job.get("work_type") == "remote" or any(normalize(x) in normalize(job.get("location", "")) for x in location) else 35
     breakdown = {"required_skills": round(skill), "preferred_skills": round(pref_score), "projects": round(project_score), "role": round(role_score), "education": 70 if any(f.get("category") == "education" for f in facts) else 0, "experience": 75 if any(f.get("category") == "experience" for f in facts) else 35, "location": round(location_score), "tools": round(ratio(req, matched))}
     overall = round(sum(breakdown[k] * WEIGHTS[k] for k in WEIGHTS) / 100, 1)
-    return {"score": overall, "breakdown": breakdown, "matched": matched, "partial": partial, "missing": missing, "explanation": f"Matched {len(matched)} of {len(req)} required skills. {len(missing)} requirements need stronger evidence."}
+    needs_evidence = len(missing) + len(partial)
+    evidence_label = "requirement needs" if needs_evidence == 1 else "requirements need"
+    return {"score": overall, "breakdown": breakdown, "matched": matched, "partial": partial, "missing": missing, "explanation": f"Matched {len(matched)} of {len(req)} required skills. {needs_evidence} {evidence_label} stronger evidence." + (f" Partial evidence: {len(partial)}." if partial else "")}
 
 def aggregate_gaps(rows: list[dict], minimum_jobs: int = 5) -> list[dict]:
     if len(rows) < minimum_jobs: return []
