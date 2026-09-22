@@ -137,3 +137,26 @@ def test_complete_skill_terms_in_project_phrases_still_match(required, evidence)
     assert result["partial"] == [required.lower()]
     assert result["missing"] == []
     assert result["breakdown"]["projects"] == 100
+
+
+@pytest.mark.parametrize("category", ["projects", "experience"])
+def test_project_score_does_not_join_separate_facts_into_a_skill(category):
+    job = {**JOB, "requirements": {"required": ["Machine Learning"]}}
+    facts = [
+        {"value": "Maintained a machine", "category": category},
+        {"value": "Learning frontend development", "category": category},
+    ]
+    result = score_job({}, facts, job)
+    assert result["breakdown"]["projects"] == 45
+    assert result["missing"] == ["machine learning"]
+    assert score_job({}, list(reversed(facts)), job) == result
+
+
+@pytest.mark.parametrize("category", ["projects", "experience"])
+def test_project_score_recognizes_complete_phrase_within_one_fact(category):
+    job = {**JOB, "requirements": {"required": ["Machine Learning"]}}
+    facts = [
+        {"value": "Built a machine learning model", "category": category},
+        {"value": "Documented the result", "category": category},
+    ]
+    assert score_job({}, facts, job)["breakdown"]["projects"] == 100

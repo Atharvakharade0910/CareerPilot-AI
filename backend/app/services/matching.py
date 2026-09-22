@@ -25,8 +25,8 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     def ratio(items, hits): return (len(hits) / len(items) * 100) if items else 100
     skill = ratio(req, matched)
     pref_score = ratio(pref, [s for s in pref if s in accepted_set])
-    text = " ".join(normalize(f["value"]) for f in facts if f.get("category") in {"projects", "experience"})
-    project_score = 100 if any(contains_term(text, s) for s in req) else 45
+    project_evidence = [normalize(f["value"]) for f in facts if f.get("category") in {"projects", "experience"}]
+    project_score = 100 if any(contains_term(text, s) for text in project_evidence for s in req) else 45
     role_terms = set(normalize(job["title"]).split())
     roles = [set(normalize(r).split()) for r in profile.get("target_roles", [])]
     role_score = 100 if any(role_terms & r for r in roles) else 55
