@@ -19,6 +19,7 @@ def tailor(job_id:uuid.UUID,db:DB=Depends(get_db),user:User=Depends(current_user
     accepted=facts(db,user,r); evidence=[{'id':str(f.id),'value':f.value,'evidence':f.evidence} for f in accepted]
     content={'summary':f"Candidate profile aligned to {job.title} at {job.company} using verified resume evidence.",'highlighted_facts':[x['value'] for x in evidence], 'evidence_ids':[x['id'] for x in evidence]}
     validation={'passed':True,'claims':[{'claim':x['value'],'evidence_id':x['id'],'valid':validate_claim(x['value'],x['evidence'],r.text)} for x in evidence], 'resume_version_id':str(r.id)}
+    validation['passed'] = bool(validation['claims']) and all(claim['valid'] for claim in validation['claims'])
     tr=TailoredResume(user_id=user.id,resume_id=r.id,job_id=job.id,content=content,validation=validation);db.add(tr);db.commit();return {'id':str(tr.id),'content':content,'validation':validation,'status':'draft'}
 @router.post('/applications/{application_id}/approve')
 def approve(application_id:uuid.UUID,db:DB=Depends(get_db),user:User=Depends(current_user)):
