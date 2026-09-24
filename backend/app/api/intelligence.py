@@ -26,7 +26,7 @@ def approve(application_id:uuid.UUID,db:DB=Depends(get_db),user:User=Depends(cur
     a=db.scalar(select(Application).where(Application.id==application_id,Application.user_id==user.id));r=latest(db,user)
     if not a or not r:raise HTTPException(404,'Application or resume not found.')
     digest=hashlib.sha256(f'{a.id}:{r.id}:{a.answers}'.encode()).hexdigest(); existing=db.scalar(select(ApplicationApproval).where(ApplicationApproval.application_id==a.id))
-    if existing: existing.approved=True;existing.approved_at=datetime.now(timezone.utc);existing.content_hash=digest
+    if existing: existing.resume_id=r.id;existing.approved=True;existing.approved_at=datetime.now(timezone.utc);existing.content_hash=digest
     else:db.add(ApplicationApproval(application_id=a.id,user_id=user.id,resume_id=r.id,content_hash=digest,approved=True,approved_at=datetime.now(timezone.utc)))
     a.status='approved';db.commit();return {'id':str(a.id),'status':a.status,'approval_hash':digest}
 @router.get('/notifications')
