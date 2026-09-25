@@ -1,9 +1,15 @@
+import asyncio
+
 from pydantic import BaseModel
 from app.core.config import settings
 
 class GeminiUnavailable(RuntimeError): pass
 
 async def generate(prompt: str, schema: type[BaseModel] | None = None):
+    return await asyncio.to_thread(_generate_sync, prompt, schema)
+
+
+def _generate_sync(prompt: str, schema: type[BaseModel] | None = None):
     if not settings.gemini_api_key: raise GeminiUnavailable("Gemini is not configured")
     try:
         from google import genai
