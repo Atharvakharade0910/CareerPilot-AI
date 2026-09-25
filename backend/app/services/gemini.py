@@ -11,6 +11,9 @@ async def generate(prompt: str, schema: type[BaseModel] | None = None):
         with genai.Client(api_key=settings.gemini_api_key.get_secret_value()) as client:
             cfg = types.GenerateContentConfig(response_mime_type="application/json" if schema else "text/plain", response_schema=schema.model_json_schema() if schema else None, system_instruction="You are an evidence-grounded career coach. Never invent candidate experience or metrics.")
             result = client.models.generate_content(model=settings.gemini_model, contents=prompt, config=cfg)
-            return schema.model_validate_json(result.text).model_dump() if schema else result.text
+            text = result.text
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError("Gemini returned no usable text")
+            return schema.model_validate_json(text).model_dump() if schema else text
     except Exception as exc:
         raise GeminiUnavailable(f"Gemini request failed: {type(exc).__name__}") from exc
