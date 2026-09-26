@@ -68,3 +68,35 @@ def test_approval_records_resume_version_used_for_hash(monkeypatch, has_previous
     assert application.status == result["status"] == "approved"
     assert len(saved) == (0 if has_previous_approval else 1)
     assert commits == [True]
+
+
+@pytest.mark.parametrize("count", [0, 3, 25])
+@pytest.mark.parametrize("provider_fails", [False, True])
+def test_assistant_references_only_supplied_evidence(monkeypatch, count, provider_fails):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    evidence = [SimpleNamespace(id=uuid4(), value=f"Evidence item {i:02d}") for i in range(count)]
+    monkeypatch.setattr(intelligence, "latest", lambda db, u: SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: evidence)
+    generate = AsyncMock(return_value="Example response")
+    if provider_fails:
+        generate.side_effect = intelligence.GeminiUnavailable("Synthetic failure")
+    monkeypatch.setattr(intelligence, "generate", generate)
+
+    result = asyncio.run(intelligence.assistant("Summarize my profile", db=object(), user=object()))
+
+    limit = 8 if provider_fails else 20
+    assert result["evidence_ids"] == [str(f.id) for f in evidence[:limit]]
+    assert result["provider"] == ("local" if provider_fails else "gemini")
+    generate.assert_awaited_once()
+    prompt = generate.call_args.args[0]
+    for fact in evidence[:20]:
+        assert fact.value in prompt
+    for fact in evidence[20:]:
+        assert fact.value not in prompt
+    if provider_fails:
+        for fact in evidence[:8]:
+            assert fact.value in result["message"]
+        for fact in evidence[8:]:
+            assert fact.value not in result["message"]

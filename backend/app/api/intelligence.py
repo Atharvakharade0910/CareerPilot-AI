@@ -46,6 +46,6 @@ async def assistant(query:str,db:DB=Depends(get_db),user:User=Depends(current_us
         return {'provider':'local','message':'Your local workspace can now analyze recurring gaps after five relevant roles. Live market analysis and learning resources require the next connector phase.','evidence_ids':[str(f.id) for f in all_facts]}
     try:
         msg = await generate(f"Accepted resume evidence: {values[:20]}\nUser question: {query}\nAnswer concisely and only from the evidence. If evidence is insufficient, say so.")
-        return {'provider':'gemini','message':msg,'evidence_ids':[str(f.id) for f in all_facts]}
+        return {'provider':'gemini','message':msg,'evidence_ids':[str(f.id) for f in all_facts[:20]]}
     except GeminiUnavailable:
-        return {'provider':'local','message':f'I can ground this workspace in your reviewed resume. Current accepted evidence includes: {", ".join(values[:8]) or "no structured facts yet"}. Gemini is temporarily unavailable, so this is the local fallback.','evidence_ids':[str(f.id) for f in all_facts]}
+        return {'provider':'local','message':f'I can ground this workspace in your reviewed resume. Current accepted evidence includes: {", ".join(values[:8]) or "no structured facts yet"}. Gemini is temporarily unavailable, so this is the local fallback.','evidence_ids':[str(f.id) for f in all_facts[:8]]}
