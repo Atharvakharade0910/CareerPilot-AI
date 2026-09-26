@@ -14,7 +14,11 @@ def _generate_sync(prompt: str, schema: type[BaseModel] | None = None):
     try:
         from google import genai
         from google.genai import types
-        with genai.Client(api_key=settings.gemini_api_key.get_secret_value()) as client:
+        http_options = types.HttpOptions(
+            timeout=30_000,
+            retry_options=types.HttpRetryOptions(attempts=1),
+        )
+        with genai.Client(api_key=settings.gemini_api_key.get_secret_value(), http_options=http_options) as client:
             cfg = types.GenerateContentConfig(response_mime_type="application/json" if schema else "text/plain", response_schema=schema.model_json_schema() if schema else None, system_instruction="You are an evidence-grounded career coach. Never invent candidate experience or metrics.")
             result = client.models.generate_content(model=settings.gemini_model, contents=prompt, config=cfg)
             text = result.text

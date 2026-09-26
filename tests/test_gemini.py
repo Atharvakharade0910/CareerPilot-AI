@@ -87,3 +87,25 @@ def test_generation_keeps_event_loop_responsive(monkeypatch):
         assert result == "Example"
 
     asyncio.run(scenario())
+
+
+def test_provider_timeout_uses_single_attempt_and_closes_client(monkeypatch):
+    import httpx
+
+    client = MagicMock(spec=genai.Client)
+    client.__enter__.return_value = client
+    client.__exit__.side_effect = lambda *args: client.close() and False
+    client.models = MagicMock()
+    client.models.generate_content.side_effect = httpx.ReadTimeout("Synthetic timeout")
+    factory = MagicMock(return_value=client)
+    monkeypatch.setattr(genai, "Client", factory)
+    monkeypatch.setattr(gemini.settings, "gemini_api_key", SecretStr("test-only-placeholder"))
+
+    with pytest.raises(gemini.GeminiUnavailable, match="ReadTimeout"):
+        asyncio.run(gemini.generate("Example question"))
+
+    options = factory.call_args.kwargs["http_options"]
+    assert options.timeout == 30_000
+    assert options.retry_options.attempts == 1
+    client.models.generate_content.assert_called_once()
+    client.close.assert_called_once()
