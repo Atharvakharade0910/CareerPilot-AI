@@ -39,6 +39,11 @@ def read(notification_id:uuid.UUID,db:DB=Depends(get_db),user:User=Depends(curre
     n.read=True;db.commit();return {'ok':True}
 @router.post('/assistant')
 async def assistant(query:str,db:DB=Depends(get_db),user:User=Depends(current_user)):
+    query = query.strip()
+    if not query:
+        raise HTTPException(422, 'Enter a question for the career assistant.')
+    if len(query) > 4000:
+        raise HTTPException(422, 'Keep your question to 4,000 characters or fewer.')
     r=latest(db,user)
     if not r:return {'provider':'local','message':'Upload and review your resume first so I can ground advice in your evidence.','evidence_ids':[]}
     terms=query.lower(); all_facts=[f for f in facts(db,user,r) if f.value.strip()]; values=[f.value for f in all_facts]

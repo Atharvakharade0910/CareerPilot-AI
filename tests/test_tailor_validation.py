@@ -119,3 +119,47 @@ def test_assistant_needs_usable_accepted_evidence(monkeypatch, values, query):
     assert result["evidence_ids"] == []
     assert "accept at least one fact" in result["message"]
     generate.assert_not_awaited()
+
+
+@pytest.mark.parametrize("query,expected_status", [
+    ("", 422),
+    (" \t\n", 422),
+    ("\u2003\u00a0", 422),
+    ("x" * 4001, 422),
+    ("x" * 4000, 200),
+    ("  Summarize my profile.\n", 200),
+])
+def test_assistant_question_validation_over_http(monkeypatch, query, expected_status):
+    from unittest.mock import AsyncMock, Mock
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    app = FastAPI()
+    app.include_router(intelligence.router)
+    app.dependency_overrides[intelligence.get_db] = lambda: object()
+    app.dependency_overrides[intelligence.current_user] = lambda: object()
+    latest = Mock(return_value=SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(intelligence, "latest", latest)
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: [
+        SimpleNamespace(id=uuid4(), value="Python"),
+    ])
+    generate = AsyncMock(return_value="Grounded response")
+    monkeypatch.setattr(intelligence, "generate", generate)
+
+    with TestClient(app) as client:
+        response = client.post("/api/assistant", params={"query": query})
+
+    assert response.status_code == expected_status
+    if expected_status == 422:
+        assert response.json()["detail"] == (
+            "Keep your question to 4,000 characters or fewer." if query.strip()
+            else "Enter a question for the career assistant."
+        )
+        latest.assert_not_called()
+        generate.assert_not_awaited()
+    else:
+        assert response.json()["message"] == "Grounded response"
+        latest.assert_called_once()
+        generate.assert_awaited_once()
+        assert f"\nUser question: {query.strip()}\nAnswer concisely" in generate.call_args.args[0]
