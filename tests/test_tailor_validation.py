@@ -70,7 +70,7 @@ def test_approval_records_resume_version_used_for_hash(monkeypatch, has_previous
     assert commits == [True]
 
 
-@pytest.mark.parametrize("count", [0, 3, 25])
+@pytest.mark.parametrize("count", [3, 25])
 @pytest.mark.parametrize("provider_fails", [False, True])
 def test_assistant_references_only_supplied_evidence(monkeypatch, count, provider_fails):
     import asyncio
@@ -100,3 +100,22 @@ def test_assistant_references_only_supplied_evidence(monkeypatch, count, provide
             assert fact.value in result["message"]
         for fact in evidence[8:]:
             assert fact.value not in result["message"]
+
+
+@pytest.mark.parametrize("values", [[], [""], [" ", "\t\n"]])
+@pytest.mark.parametrize("query", ["Summarize my profile", "What should I learn?"])
+def test_assistant_needs_usable_accepted_evidence(monkeypatch, values, query):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(intelligence, "latest", lambda db, u: SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: [
+        SimpleNamespace(id=uuid4(), value=value) for value in values
+    ])
+    generate = AsyncMock()
+    monkeypatch.setattr(intelligence, "generate", generate)
+    result = asyncio.run(intelligence.assistant(query, db=object(), user=object()))
+    assert result["provider"] == "local"
+    assert result["evidence_ids"] == []
+    assert "accept at least one fact" in result["message"]
+    generate.assert_not_awaited()

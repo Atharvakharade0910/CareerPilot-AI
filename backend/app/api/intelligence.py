@@ -41,7 +41,9 @@ def read(notification_id:uuid.UUID,db:DB=Depends(get_db),user:User=Depends(curre
 async def assistant(query:str,db:DB=Depends(get_db),user:User=Depends(current_user)):
     r=latest(db,user)
     if not r:return {'provider':'local','message':'Upload and review your resume first so I can ground advice in your evidence.','evidence_ids':[]}
-    terms=query.lower(); all_facts=facts(db,user,r); values=[f.value for f in all_facts]
+    terms=query.lower(); all_facts=[f for f in facts(db,user,r) if f.value.strip()]; values=[f.value for f in all_facts]
+    if not all_facts:
+        return {'provider':'local','message':'Review your resume and accept at least one fact before requesting advice grounded in your experience.','evidence_ids':[]}
     if 'skill gap' in terms or 'learn' in terms:
         return {'provider':'local','message':'Your local workspace can now analyze recurring gaps after five relevant roles. Live market analysis and learning resources require the next connector phase.','evidence_ids':[str(f.id) for f in all_facts]}
     try:
