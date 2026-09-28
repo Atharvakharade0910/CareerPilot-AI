@@ -76,9 +76,11 @@ def document_text(data: bytes, filename: str) -> str:
                         image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                         image = ImageOps.grayscale(image)
                         image = ImageOps.autocontrast(image).filter(ImageFilter.SHARPEN)
-                        pages.append(pytesseract.image_to_string(image, config="--psm 3"))
+                        pages.append(pytesseract.image_to_string(image, config="--psm 3", timeout=30))
                 text = "\n".join(pages)
             except Exception as exc:
+                if isinstance(exc, RuntimeError) and str(exc) == "Tesseract process timeout":
+                    raise ValueError("OCR exceeded the 30-second limit for a page. Try a clearer scan or upload a text-based PDF or DOCX.") from exc
                 raise ValueError("This scanned PDF needs local OCR. Install Tesseract OCR and the backend OCR dependencies, then retry.") from exc
     elif suffix == ".docx":
         with zipfile.ZipFile(io.BytesIO(data)) as archive:

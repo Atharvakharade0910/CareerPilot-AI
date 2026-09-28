@@ -10,8 +10,8 @@ from pypdf import PdfWriter
 from app.services.resume_parser import document_text
 
 
-@pytest.mark.parametrize("ocr_fails", [False, True])
-def test_scanned_pdf_is_closed_after_ocr(monkeypatch, ocr_fails):
+@pytest.mark.parametrize("failure", [None, "Synthetic OCR failure", "Tesseract process timeout"])
+def test_scanned_pdf_is_closed_after_ocr(monkeypatch, failure):
     writer = PdfWriter()
     writer.add_blank_page(width=72, height=72)
     buffer = io.BytesIO()
@@ -22,14 +22,16 @@ def test_scanned_pdf_is_closed_after_ocr(monkeypatch, ocr_fails):
     expected = "Skills: Python and FastAPI. Built a study assistant."
 
     def recognize(*args, **kwargs):
-        if ocr_fails:
-            raise RuntimeError("Synthetic OCR failure")
+        assert kwargs["timeout"] == 30
+        if failure:
+            raise RuntimeError(failure)
         return expected
 
     monkeypatch.setattr(pytesseract, "image_to_string", recognize)
     try:
-        if ocr_fails:
-            with pytest.raises(ValueError, match="needs local OCR"):
+        if failure:
+            message = "30-second limit for a page" if failure == "Tesseract process timeout" else "needs local OCR"
+            with pytest.raises(ValueError, match=message):
                 document_text(data, "scanned.pdf")
         else:
             assert document_text(data, "scanned.pdf") == expected
