@@ -30,8 +30,8 @@ def score_job(profile: dict, facts: list[dict], job: dict) -> dict:
     role_terms = set(normalize(job["title"]).split())
     roles = [set(normalize(r).split()) for r in profile.get("target_roles", [])]
     role_score = 100 if any(role_terms & r for r in roles) else 55
-    location = profile.get("locations", [])
-    location_score = 100 if not location or job.get("work_type") == "remote" or any(normalize(x) in normalize(job.get("location", "")) for x in location) else 35
+    location = [normalize(x) for x in profile.get("locations", []) if x.strip()]
+    location_score = 100 if not location or job.get("work_type") == "remote" or any(contains_term(normalize(job.get("location", "")), x) for x in location) else 35
     breakdown = {"required_skills": round(skill), "preferred_skills": round(pref_score), "projects": round(project_score), "role": round(role_score), "education": 70 if any(f.get("category") == "education" for f in facts) else 0, "experience": 75 if any(f.get("category") == "experience" for f in facts) else 35, "location": round(location_score), "tools": round(ratio(req, matched))}
     overall = round(sum(breakdown[k] * WEIGHTS[k] for k in WEIGHTS) / 100, 1)
     needs_evidence = len(missing) + len(partial)

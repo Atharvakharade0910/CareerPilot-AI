@@ -10,6 +10,24 @@ JOB = {
 }
 
 
+@pytest.mark.parametrize("preferences,location,work_type,expected", [
+    (["LA"], "Dallas, Texas", "onsite", 35),
+    (["York"], "Yorkshire, UK", "hybrid", 35),
+    (["Pune"], "Pune, India", "onsite", 100),
+    (["  New   York "], "New York, USA", "hybrid", 100),
+    (["Pune", "Mumbai"], "Mumbai, India", "onsite", 100),
+    (["", "  ", "Pune"], "Mumbai, India", "onsite", 35),
+    (["Pune"], "", "onsite", 35),
+    (["Pune"], "Dallas, Texas", "remote", 100),
+    ([], "Dallas, Texas", "onsite", 100),
+    (["", "  "], "Dallas, Texas", "onsite", 100),
+])
+def test_location_score_requires_complete_nonblank_preferences(preferences, location, work_type, expected):
+    job = {**JOB, "location": location, "work_type": work_type}
+    result = score_job({"locations": preferences}, [], job)
+    assert result["breakdown"]["location"] == expected
+
+
 @pytest.mark.parametrize("category", ["skills", "projects", "education", "experience"])
 def test_rejected_fact_cannot_change_match(category):
     rejected = {"value": "Python", "category": category, "accepted": False}
