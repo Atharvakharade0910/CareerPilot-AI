@@ -163,3 +163,24 @@ def test_assistant_question_validation_over_http(monkeypatch, query, expected_st
         latest.assert_called_once()
         generate.assert_awaited_once()
         assert f"\nUser question: {query.strip()}\nAnswer concisely" in generate.call_args.args[0]
+
+
+@pytest.mark.parametrize("query", ["What should I learn?", "Explain my SKILL GAPS"])
+def test_generic_learning_reply_does_not_cite_resume_evidence(monkeypatch, query):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(intelligence, "latest", lambda db, u: SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: [
+        SimpleNamespace(id=uuid4(), value="Python"),
+        SimpleNamespace(id=uuid4(), value="Built APIs"),
+    ])
+    generate = AsyncMock()
+    monkeypatch.setattr(intelligence, "generate", generate)
+
+    result = asyncio.run(intelligence.assistant(query, db=object(), user=object()))
+
+    assert result["provider"] == "local"
+    assert "five relevant roles" in result["message"]
+    assert result["evidence_ids"] == []
+    generate.assert_not_awaited()
