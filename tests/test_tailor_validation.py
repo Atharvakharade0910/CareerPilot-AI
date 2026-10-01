@@ -192,7 +192,7 @@ def test_assistant_question_validation_over_http(monkeypatch, query, expected_st
         assert f"\nUser question: {query.strip()}\nAnswer concisely" in generate.call_args.args[0]
 
 
-@pytest.mark.parametrize("query", ["What should I learn?", "Explain my SKILL GAPS"])
+@pytest.mark.parametrize("query", ["What should I learn?", "Explain my SKILL GAPS", "Suggest learning resources", "Create a learning plan"])
 def test_generic_learning_reply_does_not_cite_resume_evidence(monkeypatch, query):
     import asyncio
     from unittest.mock import AsyncMock
@@ -211,3 +211,27 @@ def test_generic_learning_reply_does_not_cite_resume_evidence(monkeypatch, query
     assert "five relevant roles" in result["message"]
     assert result["evidence_ids"] == []
     generate.assert_not_awaited()
+
+
+@pytest.mark.parametrize("query", [
+    "Summarize my machine learning projects",
+    "Describe my scikit-learn experience",
+    "What have I learned from my projects?",
+])
+def test_profile_questions_about_learning_reach_generation(monkeypatch, query):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    fact = SimpleNamespace(id=uuid4(), value="Built machine learning models with scikit-learn")
+    monkeypatch.setattr(intelligence, "latest", lambda db, u: SimpleNamespace(id=uuid4()))
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: [fact])
+    generate = AsyncMock(return_value="Evidence-grounded profile response")
+    monkeypatch.setattr(intelligence, "generate", generate)
+
+    result = asyncio.run(intelligence.assistant(query, db=object(), user=object()))
+
+    assert result["provider"] == "gemini"
+    assert result["evidence_ids"] == [str(fact.id)]
+    assert result["message"] == "Evidence-grounded profile response"
+    generate.assert_awaited_once()
+    assert query in generate.call_args.args[0]
