@@ -157,5 +157,6 @@ def extract(text: str) -> Extraction:
 
 def validate_claim(claim: str, evidence: str, source: str) -> bool:
     return bool(
-        claim.strip() and evidence.strip() and evidence in source and claim in evidence
+        claim.strip() and evidence.strip() and evidence in source
+        and re.search(r"(?<!\w)" + re.escape(claim) + r"(?!\w)", evidence)
     )

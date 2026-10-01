@@ -7,6 +7,33 @@ import pytest
 from app.api import intelligence
 
 
+@pytest.mark.parametrize("claim,evidence,expected", [
+    ("Java", "Built JavaScript applications.", False),
+    ("SQL", "Used PostgreSQL databases.", False),
+    ("10", "Served 100 customers.", False),
+    ("Java", "Built Java applications.", True),
+    ("C++", "Built C++ applications.", True),
+    ("SQL", "Built SQL-based reports.", True),
+    ("Built Python APIs.", "Built Python APIs.", True),
+])
+def test_tailored_claim_requires_complete_text(monkeypatch, claim, evidence, expected):
+    user = SimpleNamespace(id=uuid4())
+    resume = SimpleNamespace(id=uuid4(), text=evidence)
+    job = SimpleNamespace(id=uuid4(), title="Developer", company="Example")
+    monkeypatch.setattr(intelligence, "latest", lambda db, u: resume)
+    monkeypatch.setattr(intelligence, "facts", lambda db, u, r: [
+        SimpleNamespace(id=uuid4(), value=claim, evidence=evidence),
+    ])
+    saved = []
+    db = SimpleNamespace(get=lambda model, key: job, add=saved.append, commit=lambda: None)
+
+    result = intelligence.tailor(job.id, db=db, user=user)
+
+    assert result["validation"]["passed"] is expected
+    assert result["validation"]["claims"][0]["valid"] is expected
+    assert saved[0].validation == result["validation"]
+
+
 @pytest.mark.parametrize("values,expected", [
     (["Python"], True),
     (["Docker"], False),
