@@ -2,7 +2,12 @@ from collections import Counter
 from dataclasses import dataclass
 import re
 
-ALIASES = {"postgres": "postgresql", "sklearn": "scikit-learn", "gen ai": "generative ai", "llm": "large language models"}
+ALIASES = {
+    "postgres": "postgresql", "sklearn": "scikit-learn", "gen ai": "generative ai",
+    "llm": "large language models", "llms": "large language models",
+    "amazon web services": "aws", "natural language processing": "nlp",
+    "retrieval augmented generation": "rag", "retrieval-augmented generation": "rag",
+}
 WEIGHTS = {"required_skills": 35, "preferred_skills": 10, "projects": 15, "role": 10, "education": 10, "experience": 10, "location": 5, "tools": 5}
 
 def normalize(value: str) -> str:

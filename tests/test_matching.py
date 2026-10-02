@@ -10,6 +10,26 @@ JOB = {
 }
 
 
+@pytest.mark.parametrize("canonical,alias", [
+    ("Large Language Models", "LLMs"),
+    ("AWS", "Amazon Web Services"),
+    ("NLP", "natural language processing"),
+    ("RAG", "retrieval augmented generation"),
+    ("RAG", "retrieval-augmented generation"),
+])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_known_resume_aliases_match_job_requirements(canonical, alias, reverse):
+    required, value = (canonical, alias) if reverse else (alias, canonical)
+    job = {**JOB, "requirements": {"required": [required], "preferred": [required]}}
+    facts = [{"value": value, "category": "skills", "accepted": True}]
+    result = score_job({}, facts, job)
+    assert result["matched"] == [canonical.lower()]
+    assert result["partial"] == result["missing"] == []
+    assert result["breakdown"]["required_skills"] == 100
+    assert result["breakdown"]["preferred_skills"] == 100
+    assert aggregate_gaps([result] * 5) == []
+
+
 @pytest.mark.parametrize("preferences,location,work_type,expected", [
     (["LA"], "Dallas, Texas", "onsite", 35),
     (["York"], "Yorkshire, UK", "hybrid", 35),
