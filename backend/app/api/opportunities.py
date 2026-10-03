@@ -27,7 +27,8 @@ def profile(db,user): return db.scalar(select(CandidateProfile).where(CandidateP
 def facts(db,user,resume): return [{"value":f.value,"category":f.category,"accepted":f.accepted} for f in db.scalars(select(CandidateFact).where(CandidateFact.user_id==user.id,CandidateFact.resume_id==resume.id))]
 
 @router.get("/jobs")
-def jobs(q:str="", remote:bool=False, db:DB=Depends(get_db), user:User=Depends(current_user)):
+def jobs(q:str=Query("", max_length=120), remote:bool=False, db:DB=Depends(get_db), user:User=Depends(current_user)):
+    q = q.strip()
     ensure_jobs(db); rows=list(db.scalars(select(Job).where(Job.active==True).order_by(Job.posted_at.desc())))
     if q: rows=[x for x in rows if q.lower() in f"{x.title} {x.company} {x.description}".lower()]
     if remote: rows=[x for x in rows if x.work_type=="remote"]
