@@ -200,7 +200,9 @@ def upload(
     data = file.file.read(5 * 1024 * 1024 + 1)
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(413, "Resume must be 5 MB or smaller.")
-    name = Path((file.filename or "resume").replace("\\", "/")).name[:255]
+    name = Path((file.filename or "resume").replace("\\", "/")).name
+    if len(name) > 255:
+        raise HTTPException(422, "Resume filenames must be 255 characters or fewer.")
     try:
         text = document_text(data, name)
         parsed = extract(text)
