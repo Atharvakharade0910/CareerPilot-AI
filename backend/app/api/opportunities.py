@@ -35,6 +35,8 @@ def jobs(q:str=Query("", max_length=120), remote:bool=False, db:DB=Depends(get_d
     return [j(x) for x in rows]
 @router.get("/jobs/search/live")
 async def live_jobs(q:str=Query("", max_length=120), location:str=Query("", max_length=120), page:int=Query(1, ge=1, le=20), remote:bool=False, db:DB=Depends(get_db)):
+    q = q.strip()
+    location = location.strip()
     try:
         rows, fetched, stale, more = await fetch_page(page)
     except RuntimeError as exc:
